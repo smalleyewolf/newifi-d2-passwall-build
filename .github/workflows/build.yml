@@ -1,0 +1,135 @@
+name: Build Newifi D2 PassWall
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af || true
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint \
+            binutils bison build-essential bzip2 ccache clang cmake \
+            cpio curl device-tree-compiler ecj fastjar flex gawk \
+            gettext gcc-multilib g++-multilib git gnutls-dev gperf \
+            haveged help2man intltool lib32gcc-s1 libc6-dev-i386 \
+            libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+            libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool libyaml-dev libz-dev \
+            lld llvm ninja-build p7zip p7zip-full patch pkgconf \
+            python3 python3-pip python3-ply python3-docutils \
+            python3-pyelftools qemu-utils re2c rsync scons \
+            squashfs-tools subversion swig texinfo uglifyjs \
+            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+
+      - name: Download ImmortalWrt
+        run: |
+          git clone --depth 1 --branch v24.10.6 \
+            https://github.com/immortalwrt/immortalwrt.git
+          cd immortalwrt
+          git log -1 --oneline
+
+      - name: Add PassWall official feeds
+        working-directory: immortalwrt
+        run: |
+          sed -i '1i src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
+          sed -i '1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' feeds.conf.default
+
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure Newifi D2 and PassWall
+        working-directory: immortalwrt
+        run: |
+          cat > .config <<'EOF'
+          CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt7621=y
+          CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
+
+          CONFIG_PACKAGE_luci=y
+          CONFIG_LUCI_LANG_zh_Hans=y
+          CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+
+          CONFIG_PACKAGE_luci-app-passwall=y
+          CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y
+
+          CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y
+          # CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy is not set
+
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
+
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Hysteria is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_NaiveProxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Geoview is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Haproxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Geodata is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Plugin is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray_Plugin is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_Libev_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_Libev_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Simple_Obfs is not set
+          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadow_TLS is not set
+
+          CONFIG_CCACHE=y
+          EOF
+
+          make defconfig
+
+          echo "Selected configuration:"
+          grep -E 'newifi-d2|luci-app-passwall|xray-core|Nftables' .config || true
+
+      - name: Download source packages
+        working-directory: immortalwrt
+        run: |
+          make download -j8 V=s
+
+          echo "Checking incomplete downloads:"
+          find dl -type f -size -1024c -print
+
+          find dl -type f -size -1024c -delete
+          make download -j8 V=s
+
+      - name: Build firmware
+        working-directory: immortalwrt
+        run: |
+          make -j2 V=s || make -j1 V=s
+
+      - name: Show firmware information
+        working-directory: immortalwrt
+        run: |
+          ls -lh bin/targets/ramips/mt7621/*newifi-d2*.bin
+
+          cd bin/targets/ramips/mt7621
+          sha256sum *newifi-d2*.bin > SHA256SUMS-newifi-d2
+          cat SHA256SUMS-newifi-d2
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: Newifi-D2-ImmortalWrt-PassWall
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            immortalwrt/bin/targets/ramips/mt7621/*newifi-d2*.bin
+            immortalwrt/bin/targets/ramips/mt7621/SHA256SUMS-newifi-d2
+            immortalwrt/.config
