@@ -46,13 +46,22 @@ jobs:
           cd immortalwrt
           git log -1 --oneline
 
-      - name: Add PassWall official feeds
+      - name: Add compatible PassWall feeds
         working-directory: immortalwrt
         run: |
+          # ImmortalWrt 24.10.6 supplies Go 1.23.12. Pin the package feed to
+          # Xray 25.2.21, the last compatible generation before Go 1.24+.
+          PASSWALL_PACKAGES_COMMIT="0eed799ea1ff165ab8df899e08038c3879f6ce95"
+
           sed -i '1i src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
-          sed -i '1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' feeds.conf.default
+          sed -i "1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git^${PASSWALL_PACKAGES_COMMIT}" feeds.conf.default
 
           ./scripts/feeds update -a
+
+          XRAY_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall_packages/xray-core/Makefile)"
+          echo "Pinned Xray version: ${XRAY_VERSION}"
+          test "${XRAY_VERSION}" = "25.2.21"
+
           ./scripts/feeds install -a
 
       - name: Configure Newifi D2 and PassWall
