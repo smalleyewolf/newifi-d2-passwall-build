@@ -24,20 +24,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            ack antlr3 asciidoc autoconf automake autopoint \
-            binutils bison build-essential bzip2 ccache clang cmake \
-            cpio curl device-tree-compiler ecj fastjar flex gawk \
-            gettext gcc-multilib g++-multilib git gnutls-dev gperf \
-            haveged help2man intltool lib32gcc-s1 libc6-dev-i386 \
-            libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
-            libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
-            libreadline-dev libssl-dev libtool libyaml-dev libz-dev \
-            lld llvm ninja-build p7zip p7zip-full patch pkgconf \
-            python3 python3-pip python3-ply python3-docutils \
-            python3-pyelftools qemu-utils re2c rsync scons \
-            squashfs-tools subversion swig texinfo uglifyjs \
-            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+          sudo apt-get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
 
       - name: Download ImmortalWrt
         run: |
@@ -54,26 +41,22 @@ jobs:
           ./scripts/feeds update -a V=s
           ./scripts/feeds install -a V=s
 
-      - name: Generate config file
+      - name: Generate config
         working-directory: immortalwrt
-        run: |
-          rm -f .config
-          echo "CONFIG_TARGET_ramips=y" >> .config
-          echo "CONFIG_TARGET_ramips_mt7621=y" >> .config
-          echo "CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y" >> .config
-          echo "CONFIG_PACKAGE_luci=y" >> .config
-          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
-
-          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y" >> .config
-
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y" >> .config
-          echo "CONFIG_CCACHE=y" >> .config
-
-          make defconfig 2>&1
-          echo "==== config check ===="
+        run: >
+          rm -f .config &&
+          echo "CONFIG_TARGET_ramips=y" >> .config &&
+          echo "CONFIG_TARGET_ramips_mt7621=y" >> .config &&
+          echo "CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci=y" >> .config &&
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y" >> .config &&
+          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y" >> .config &&
+          echo "CONFIG_CCACHE=y" >> .config &&
+          make defconfig 2>&1 &&
           grep -E 'newifi-d2|luci-app-passwall2|xray-core' .config || true
 
       - name: Download source packages
