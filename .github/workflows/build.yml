@@ -45,20 +45,19 @@ jobs:
             https://github.com/immortalwrt/immortalwrt.git
           cd immortalwrt
           git log -1 --oneline
+          rm -rf feeds/*
+          rm -f feeds.conf
 
-      - name: Add PassWall2 feeds (pin compatible commit for Go1.23)
+      - name: Add PassWall2 feeds
         working-directory: immortalwrt
         run: |
-          # passwall2 feeds，锁定兼容24.10 go‑1.23版本
-          PASSWALL2_PACKAGES_COMMIT="0eed799ea1ff165ab8df899e08038c3879f6ce95"
           sed -i '1i src-git passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git;main' feeds.conf.default
-          sed -i "1i src-git passwall2_packages https://github.com/xiaorouji/openwrt-passwall-packages.git^${PASSWALL2_PACKAGES_COMMIT}" feeds.conf.default
+          sed -i '1i src-git passwall2_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;25.2.21' feeds.conf.default
 
-          ./scripts/feeds update -a
+          ./scripts/feeds update -a V=s
           XRAY_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall2_packages/xray-core/Makefile)"
-          echo "Pinned Xray version: ${XRAY_VERSION}"
-          test "${XRAY_VERSION}" = "25.2.21"
-          ./scripts/feeds install -a
+          echo "XRAY_VERSION: ${XRAY_VERSION}"
+          ./scripts/feeds install -a V=s
 
       - name: Configure Newifi D2 + PassWall2
         working-directory: immortalwrt
@@ -76,7 +75,7 @@ jobs:
           CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y
           # CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set
 
-          # 只启用 Xray，关闭 Sing‑Box/Hysteria/NaiveProxy 控制固件体积
+          # Only Xray enabled, keep flash size small for 16M flash
           CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
           # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox is not set
           # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set
