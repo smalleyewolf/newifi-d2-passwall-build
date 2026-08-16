@@ -27,9 +27,19 @@ jobs:
       - name: Clone ImmortalWrt
         run: git clone --depth 1 --branch v24.10.6 https://github.com/immortalwrt/immortalwrt.git
 
-      - name: Generate .config file
+      - name: Generate .config
         working-directory: immortalwrt
-        run: echo -e "CONFIG_TARGET_ramips=y\nCONFIG_TARGET_ramips_mt7621=y\nCONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y\nCONFIG_PACKAGE_luci=y\nCONFIG_LUCI_LANG_zh_Hans=y\nCONFIG_PACKAGE_luci-i18n-base-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2=y\nCONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y\nCONFIG_CCACHE=y" > .config
+        run: >
+          echo "CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt7621=y
+          CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_LUCI_LANG_zh_Hans=y
+          CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+          CONFIG_PACKAGE_luci-app-passwall2=y
+          CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+          CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
+          CONFIG_CCACHE=y" > .config
 
       - name: Add passwall feeds
         working-directory: immortalwrt
