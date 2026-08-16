@@ -41,19 +41,15 @@ jobs:
 
       - name: Download ImmortalWrt
         run: |
-          git clone --depth 1 --branch v24.10.6 \
-            https://github.com/immortalwrt/immortalwrt.git
+          git clone --depth 1 --branch v24.10.6 https://github.com/immortalwrt/immortalwrt.git
           cd immortalwrt
           git log -1 --oneline
 
-      - name: Add PassWall2 feeds (append to end, NOT insert first line)
+      - name: Add PassWall2 feeds (append to end)
         working-directory: immortalwrt
         run: |
-          # 追加到feeds.conf.default文件末尾，不要插入第一行！
-          cat >> feeds.conf.default <<'EOF'
-src-git passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git;main
-src-git passwall2_packages https://github.com/xiaorouji/openwrt-passwall-packages.git^0eed799ea1ff165ab8df899e08038c3879f6ce95
-EOF
+          echo "src-git passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git;main" >> feeds.conf.default
+          echo "src-git passwall2_packages https://github.com/xiaorouji/openwrt-passwall-packages.git^0eed799ea1ff165ab8df899e08038c3879f6ce95" >> feeds.conf.default
           cat feeds.conf.default
           ./scripts/feeds update -a V=s
           ./scripts/feeds install -a V=s
@@ -92,7 +88,6 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
 
 CONFIG_CCACHE=y
 EOF
-          # 捕获defconfig的stderr输出
           make defconfig 2>&1
           echo "===== .config key check ====="
           grep -E 'newifi-d2|luci-app-passwall2|xray-core' .config || true
