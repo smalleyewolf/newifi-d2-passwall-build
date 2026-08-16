@@ -45,7 +45,7 @@ jobs:
           cd immortalwrt
           git log -1 --oneline
 
-      - name: Add PassWall2 feeds (append to end)
+      - name: Add PassWall2 feeds
         working-directory: immortalwrt
         run: |
           echo "src-git passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git;main" >> feeds.conf.default
@@ -54,42 +54,41 @@ jobs:
           ./scripts/feeds update -a V=s
           ./scripts/feeds install -a V=s
 
-      - name: Configure Newifi D2 + PassWall2
+      - name: Generate config file
         working-directory: immortalwrt
         run: |
-          cat > .config <<'EOF'
-CONFIG_TARGET_ramips=y
-CONFIG_TARGET_ramips_mt7621=y
-CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
-CONFIG_PACKAGE_luci=y
-CONFIG_LUCI_LANG_zh_Hans=y
-CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+          rm -f .config
+          echo "CONFIG_TARGET_ramips=y" >> .config
+          echo "CONFIG_TARGET_ramips_mt7621=y" >> .config
+          echo "CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y" >> .config
+          echo "CONFIG_PACKAGE_luci=y" >> .config
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
 
-CONFIG_PACKAGE_luci-app-passwall2=y
-CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
-CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y
-# CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set
+          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set" >> .config
 
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Geoview is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set
-# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadow_TLS is not set
+          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Geoview is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set" >> .config
+          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadow_TLS is not set" >> .config
 
-CONFIG_CCACHE=y
-EOF
+          echo "CONFIG_CCACHE=y" >> .config
           make defconfig 2>&1
-          echo "===== .config key check ====="
+          echo "==== config check ===="
           grep -E 'newifi-d2|luci-app-passwall2|xray-core' .config || true
 
       - name: Download source packages
