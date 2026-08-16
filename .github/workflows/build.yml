@@ -1,4 +1,4 @@
-name: Build Newifi D2 PassWall
+name: Build Newifi D2 PassWall2
 
 on:
   workflow_dispatch:
@@ -46,75 +46,65 @@ jobs:
           cd immortalwrt
           git log -1 --oneline
 
-      - name: Add compatible PassWall feeds
+      - name: Add PassWall2 feeds (pin compatible commit for Go1.23)
         working-directory: immortalwrt
         run: |
-          # ImmortalWrt 24.10.6 supplies Go 1.23.12. Pin the package feed to
-          # Xray 25.2.21, the last compatible generation before Go 1.24+.
-          PASSWALL_PACKAGES_COMMIT="0eed799ea1ff165ab8df899e08038c3879f6ce95"
-
-          sed -i '1i src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
-          sed -i "1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git^${PASSWALL_PACKAGES_COMMIT}" feeds.conf.default
+          # passwall2 feeds，锁定兼容24.10 go‑1.23版本
+          PASSWALL2_PACKAGES_COMMIT="0eed799ea1ff165ab8df899e08038c3879f6ce95"
+          sed -i '1i src-git passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git;main' feeds.conf.default
+          sed -i "1i src-git passwall2_packages https://github.com/xiaorouji/openwrt-passwall-packages.git^${PASSWALL2_PACKAGES_COMMIT}" feeds.conf.default
 
           ./scripts/feeds update -a
-
-          XRAY_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall_packages/xray-core/Makefile)"
+          XRAY_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall2_packages/xray-core/Makefile)"
           echo "Pinned Xray version: ${XRAY_VERSION}"
           test "${XRAY_VERSION}" = "25.2.21"
-
           ./scripts/feeds install -a
 
-      - name: Configure Newifi D2 and PassWall
+      - name: Configure Newifi D2 + PassWall2
         working-directory: immortalwrt
         run: |
           cat > .config <<'EOF'
           CONFIG_TARGET_ramips=y
           CONFIG_TARGET_ramips_mt7621=y
           CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
-
           CONFIG_PACKAGE_luci=y
           CONFIG_LUCI_LANG_zh_Hans=y
           CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 
-          CONFIG_PACKAGE_luci-app-passwall=y
-          CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y
+          CONFIG_PACKAGE_luci-app-passwall2=y
+          CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+          CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y
+          # CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set
 
-          CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y
-          # CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy is not set
-
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
-
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Hysteria is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_NaiveProxy is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Geoview is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Haproxy is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Geodata is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Plugin is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray_Plugin is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Server is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_Libev_Client is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_Libev_Server is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Simple_Obfs is not set
-          # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadow_TLS is not set
+          # 只启用 Xray，关闭 Sing‑Box/Hysteria/NaiveProxy 控制固件体积
+          CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Geoview is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadow_TLS is not set
 
           CONFIG_CCACHE=y
           EOF
-
           make defconfig
-
           echo "Selected configuration:"
-          grep -E 'newifi-d2|luci-app-passwall|xray-core|Nftables' .config || true
+          grep -E 'newifi-d2|luci-app-passwall2|xray-core|Nftables' .config || true
 
       - name: Download source packages
         working-directory: immortalwrt
         run: |
           make download -j8 V=s
-
           echo "Checking incomplete downloads:"
           find dl -type f -size -1024c -print
-
           find dl -type f -size -1024c -delete
           make download -j8 V=s
 
@@ -127,7 +117,6 @@ jobs:
         working-directory: immortalwrt
         run: |
           ls -lh bin/targets/ramips/mt7621/*newifi-d2*.bin
-
           cd bin/targets/ramips/mt7621
           sha256sum *newifi-d2*.bin > SHA256SUMS-newifi-d2
           cat SHA256SUMS-newifi-d2
@@ -135,7 +124,7 @@ jobs:
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: Newifi-D2-ImmortalWrt-PassWall
+          name: Newifi-D2-ImmortalWrt-PassWall2
           retention-days: 7
           if-no-files-found: error
           path: |
