@@ -46,7 +46,7 @@ jobs:
       - name: Generate config
         working-directory: immortalwrt
         run: |
-          cat > .config <<'EOF'
+          cat > .config <<'EOF'    
 CONFIG_TARGET_ramips=y
 CONFIG_TARGET_ramips_mt7621=y
 CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
