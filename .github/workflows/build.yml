@@ -1,4 +1,4 @@
-name: Build Newifi‑D2 With PassWall2
+name: Build Newifi-D2 With PassWall2
 on:
   workflow_dispatch
 permissions:
@@ -6,8 +6,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu‑22.04
-    timeout‑minutes: 360
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,50 +20,50 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt‑get update
-          sudo apt‑get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build‑essential bzip2 ccache clang cmake cpio curl device‑tree‑compiler ecj fastjar flex gawk gettext gcc‑multilib g++‑multilib git gnutls‑dev gperf haveged help2man intltool lib32gcc‑s1 libc6‑dev‑i386 libelf‑dev libglib2.0‑dev libgmp3‑dev libltdl‑dev libmpc‑dev libmpfr‑dev libncurses‑dev libpython3‑dev libreadline‑dev libssl‑dev libtool libyaml‑dev libz‑dev lld llvm ninja‑build p7zip p7zip‑full patch pkgconf python3 python3‑pip python3‑ply python3‑docutils python3‑pyelftools qemu‑utils re2c rsync scons squashfs‑tools subversion swig texinfo uglifyjs upx‑ucl unzip vim wget xmlto xxd zlib1g‑dev zstd
+          sudo apt-get update
+          sudo apt-get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
 
       - name: Clone ImmortalWrt 24.10.6
         run: git clone --depth 1 --branch v24.10.6 https://github.com/immortalwrt/immortalwrt.git
 
       - name: Feeds add passwall2
-        working‑directory: immortalwrt
+        working-directory: immortalwrt
         run: |
-          ./scripts/feeds add passwall2_luci https://github.com/xiaorouji/openwrt‑passwall2.git main
-          ./scripts/feeds add passwall2_pkg https://github.com/xiaorouji/openwrt‑passwall‑packages.git 0eed799ea1ff165ab8df899e08038c3879f6ce95
+          ./scripts/feeds add passwall2_luci https://github.com/xiaorouji/openwrt-passwall2.git main
+          ./scripts/feeds add passwall2_pkg https://github.com/xiaorouji/openwrt-passwall-packages.git 0eed799ea1ff165ab8df899e08038c3879f6ce95
           ./scripts/feeds update -a V=s
           ./scripts/feeds install -a V=s
 
-      - name: Set target Newifi‑D2 and enable passwall2
-        working‑directory: immortalwrt
+      - name: Set target Newifi-D2 and enable passwall2
+        working-directory: immortalwrt
         run: |
           cat > .config.tmp <<'EOF'
 CONFIG_TARGET_ramips=y
 CONFIG_TARGET_ramips_mt7621=y
-CONFIG_TARGET_ramips_mt7621_DEVICE_d‑team_newifi‑d2=y
+CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
 CONFIG_PACKAGE_luci=y
 CONFIG_LUCI_LANG_zh_Hans=y
-CONFIG_PACKAGE_luci‑i18n‑base‑zh‑cn=y
-CONFIG_PACKAGE_luci‑app‑passwall2=y
-CONFIG_PACKAGE_luci‑i18n‑passwall2‑zh‑cn=y
-CONFIG_PACKAGE_luci‑app‑passwall2_INCLUDE_Xray=y
+CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+CONFIG_PACKAGE_luci-app-passwall2=y
+CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
 CONFIG_CCACHE=y
 EOF
           cp .config.tmp .config
           make defconfig 2>&1
-          grep -E 'newifi‑d2|passwall2|xray' .config
+          grep -E 'newifi-d2|passwall2|xray' .config
 
       - name: Download sources
-        working‑directory: immortalwrt
+        working-directory: immortalwrt
         run: make download -j8
 
       - name: Compile firmware
-        working‑directory: immortalwrt
+        working-directory: immortalwrt
         run: make -j2 || make -j1
 
       - name: Upload bin
-        uses: actions/upload‑artifact@v4
+        uses: actions/upload-artifact@v4
         with:
-          name: Newifi‑D2‑PassWall2‑Firmware
-          retention‑days: 7
+          name: Newifi-D2-PassWall2-Firmware
+          retention-days: 7
           path: immortalwrt/bin/targets/ramips/mt7621/*.bin
