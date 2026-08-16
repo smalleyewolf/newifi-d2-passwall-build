@@ -1,1 +1,104 @@
+name: Build Newifi-D2 Passwall2
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 420
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+            bzip2 cmake cpio curl device-tree-compiler flex gawk gettext gcc g++ \
+            git gperf libelf-dev libncurses-dev libssl-dev libtool libz-dev ninja-build \
+            patch pkgconf python3 python3-pip rsync scons squashfs-tools subversion \
+            swig texinfo unzip wget xmlto zlib1g-dev zstd
+
+      - name: Clone ImmortalWrt
+        run: |
+          git clone --depth=1 --branch v24.10.6 https://github.com/immortalwrt/immortalwrt.git
+
+      - name: Use China mirror
+        working-directory: immortalwrt
+        run: |
+          sed -i 's|https://downloads.immortalwrt.org|https://mirrors.vsean.net/openwrt|g' \
+            scripts/download.pl include/version.mk 2>/dev/null || true
+
+      - name: Generate base config
+        working-directory: immortalwrt
+        run: |
+          cat > .config <<EOF
+          CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt7621=y
+          CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+          CONFIG_PACKAGE_luci-app-passwall2=y
+          CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
+          CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=n
+          CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+          CONFIG_PACKAGE_opkg=y
+          CONFIG_PACKAGE_luci-app-opkg=y
+          EOF
+
+      - name: Add passwall feeds
+        working-directory: immortalwrt
+        run: |
+          ./scripts/feeds add -f passwall2 https://github.com/xiaorouji/openwrt-passwall2.git
+          ./scripts/feeds add -f passwall_pkgs https://github.com/xiaorouji/openwrt-passwall-packages.git
+          ./scripts/feeds update passwall2 passwall_pkgs
+          ./scripts/feeds install luci-app-passwall2
+          ./scripts/feeds install luci-i18n-passwall2-zh-cn
+
+      - name: Defconfig + force enable
+        working-directory: immortalwrt
+        run: |
+          make defconfig
+          grep -q "CONFIG_PACKAGE_luci-app-passwall2=y" .config || \
+            sed -i 's/# CONFIG_PACKAGE_luci-app-passwall2 is not set/CONFIG_PACKAGE_luci-app-passwall2=y/' .config
+          make defconfig
+
+      - name: Bake clean opkg feeds
+        working-directory: immortalwrt
+        run: |
+          mkdir -p files/etc/opkg
+          cat > files/etc/opkg/distfeeds.conf <<'EOF'
+          src/gz immortalwrt_core https://mirrors.vsean.net/openwrt/releases/24.10.6/targets/ramips/mt7621/packages
+          src/gz immortalwrt_base https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/base
+          src/gz immortalwrt_luci https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/luci
+          src/gz immortalwrt_packages https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/packages
+          src/gz immortalwrt_routing https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/routing
+          src/gz immortalwrt_telephony https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/telephony
+          EOF
+
+      - name: Download
+        working-directory: immortalwrt
+        run: make download -j$(nproc)
+
+      - name: Build
+        working-directory: immortalwrt
+        run: make -j$(nproc) V=s || make -j1 V=s
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Newifi-D2-ImmortalWrt24-Passwall2
+          retention-days: 7
+          path: immortalwrt/bin/targets/ramips/mt7621/*.bin
