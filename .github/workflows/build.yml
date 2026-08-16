@@ -68,25 +68,10 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set" >> .config
 
           echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Geoview is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set" >> .config
-          echo "# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadow_TLS is not set" >> .config
-
           echo "CONFIG_CCACHE=y" >> .config
+
           make defconfig 2>&1
           echo "==== config check ===="
           grep -E 'newifi-d2|luci-app-passwall2|xray-core' .config || true
