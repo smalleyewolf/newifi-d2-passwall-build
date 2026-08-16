@@ -34,22 +34,10 @@ jobs:
           ./scripts/feeds update -a V=s
           ./scripts/feeds install -a V=s
 
-      - name: Set target Newifi-D2 and enable passwall2
+      - name: Write config file
         working-directory: immortalwrt
         run: |
-          cat > .config.tmp <<'EOF'
-CONFIG_TARGET_ramips=y
-CONFIG_TARGET_ramips_mt7621=y
-CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
-CONFIG_PACKAGE_luci=y
-CONFIG_LUCI_LANG_zh_Hans=y
-CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
-CONFIG_PACKAGE_luci-app-passwall2=y
-CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
-CONFIG_CCACHE=y
-EOF
-          cp .config.tmp .config
+          printf "CONFIG_TARGET_ramips=y\nCONFIG_TARGET_ramips_mt7621=y\nCONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y\nCONFIG_PACKAGE_luci=y\nCONFIG_LUCI_LANG_zh_Hans=y\nCONFIG_PACKAGE_luci-i18n-base-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2=y\nCONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y\nCONFIG_CCACHE=y\n" > .config
           make defconfig 2>&1
           grep -E 'newifi-d2|passwall2|xray' .config
 
