@@ -109,3 +109,9 @@ jobs:
           name: Newifi-D2-ImmortalWrt24-Passwall2
           retention-days: 7
           path: immortalwrt/bin/targets/ramips/mt7621/*.bin
+- name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
