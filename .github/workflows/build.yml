@@ -75,18 +75,16 @@ jobs:
           grep -q "CONFIG_PACKAGE_luci-app-passwall2=y" .config || sed -i 's/# CONFIG_PACKAGE_luci-app-passwall2 is not set/CONFIG_PACKAGE_luci-app-passwall2=y/' .config
           make defconfig
 
-      - name: Bake opkg feeds
+     - name: Bake opkg feeds
         working-directory: immortalwrt
         run: |
           mkdir -p files/etc/opkg
-          cat > files/etc/opkg/distfeeds.conf <<'EOF'
-src/gz immortalwrt_core https://mirrors.vsean.net/openwrt/releases/24.10.6/targets/ramips/mt7621/packages
-src/gz immortalwrt_base https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/base
-src/gz immortalwrt_luci https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/luci
-src/gz immortalwrt_packages https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/packages
-src/gz immortalwrt_routing https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/routing
-src/gz immortalwrt_telephony https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/telephony
-EOF
+          printf 'src/gz immortalwrt_core https://mirrors.vsean.net/openwrt/releases/24.10.6/targets/ramips/mt7621/packages\n' > files/etc/opkg/distfeeds.conf
+          printf 'src/gz immortalwrt_base https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/base\n' >> files/etc/opkg/distfeeds.conf
+          printf 'src/gz immortalwrt_luci https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/luci\n' >> files/etc/opkg/distfeeds.conf
+          printf 'src/gz immortalwrt_packages https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/packages\n' >> files/etc/opkg/distfeeds.conf
+          printf 'src/gz immortalwrt_routing https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/routing\n' >> files/etc/opkg/distfeeds.conf
+          printf 'src/gz immortalwrt_telephony https://mirrors.vsean.net/openwrt/releases/24.10.6/packages/mipsel_24kc/telephony\n' >> files/etc/opkg/distfeeds.conf
 
       - name: Download
         working-directory: immortalwrt
