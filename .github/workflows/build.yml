@@ -64,7 +64,6 @@ jobs:
           ./scripts/feeds add -f passwall_pkgs https://github.com/xiaorouji/openwrt-passwall-packages.git
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
       - name: Defconfig
         working-directory: immortalwrt
         run: |
