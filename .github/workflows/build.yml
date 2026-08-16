@@ -27,9 +27,9 @@ jobs:
       - name: Clone ImmortalWrt
         run: git clone --depth 1 --branch v24.10.6 https://github.com/immortalwrt/immortalwrt.git
 
-      - name: Generate .config
+      - name: Generate .config file
         working-directory: immortalwrt
-        run: echo "Q09ORklHX1RBUkdFVF9yYW1pcHM9eQpDT05GSUdfVEFSR0VUX3JhbGlwc19tdDc2MjE9eQpDT05GSUdfVEFSR0VUX3JhbGlwc19tdDc2MjFfREVWSUNFX2QtdGVhbV9uZXdpaGktZDI9eQpDT05GSUdfUEFDQ0FHRV9sdWNpPXkKQ09ORklHX0xVQ0lfT0FOR196aF9IYW5zPXkKQ09ORklHX1BBQ0tBR0VfbHVjaS1pMThuLWJhc2UtemgtY249eQpDT05GSUdfUEFDQ0FHRV9sdWNpLWFwcC1wYXNzd2FsbDI9eQpDT05GSUdfUEFDQ0FHRV9sdWNpLWkxOG4tcGFzc3dhbGwyLXpoLWNuPXkKQ09ORklHX1BBQ0tBR0VfbHVjaS1hcHAtcGFzc3dhbGwyX0lOQ0xVRGVfWHJheT15CkNPTkZJR19DQ0FDSEU9eQo=" | base64 -d > .config
+        run: echo -e "CONFIG_TARGET_ramips=y\nCONFIG_TARGET_ramips_mt7621=y\nCONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y\nCONFIG_PACKAGE_luci=y\nCONFIG_LUCI_LANG_zh_Hans=y\nCONFIG_PACKAGE_luci-i18n-base-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2=y\nCONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y\nCONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y\nCONFIG_CCACHE=y" > .config
 
       - name: Add passwall feeds
         working-directory: immortalwrt
