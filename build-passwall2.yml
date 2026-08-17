@@ -1,0 +1,191 @@
+name: Build Newifi D2 PassWall 2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af || true
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint \
+            binutils bison build-essential bzip2 ccache clang cmake \
+            cpio curl device-tree-compiler ecj fastjar flex gawk \
+            gettext gcc-multilib g++-multilib git gnutls-dev gperf \
+            haveged help2man intltool lib32gcc-s1 libc6-dev-i386 \
+            libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+            libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool libyaml-dev libz-dev \
+            lld llvm ninja-build p7zip p7zip-full patch pkgconf \
+            python3 python3-pip python3-ply python3-docutils \
+            python3-pyelftools qemu-utils re2c rsync scons \
+            squashfs-tools subversion swig texinfo uglifyjs \
+            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+
+      - name: Download ImmortalWrt
+        run: |
+          git clone --depth 1 --branch v24.10.6 \
+            https://github.com/immortalwrt/immortalwrt.git
+          cd immortalwrt
+          git log -1 --oneline
+
+      - name: Add compatible PassWall 2 feeds
+        working-directory: immortalwrt
+        run: |
+          # ImmortalWrt 24.10.6 uses Go 1.23.12. Xray 26.x requires newer Go,
+          # so pin the package feed to Xray 25.2.21 (Go 1.23 compatible).
+          PASSWALL_PACKAGES_COMMIT="0eed799ea1ff165ab8df899e08038c3879f6ce95"
+          PASSWALL2_COMMIT="6a4f7f5f4d3851b4122b250ef97fb3e19a13f26c"
+          GEODATA_COMMIT="b4f719f44343b6f62d5c21e14da0c844b21a58ed"
+
+          sed -i "1i src-git passwall2 https://github.com/Openwrt-Passwall/openwrt-passwall2.git^${PASSWALL2_COMMIT}" feeds.conf.default
+          sed -i "1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git^${PASSWALL_PACKAGES_COMMIT}" feeds.conf.default
+
+          ./scripts/feeds update -a
+
+          # The compatible package snapshot points to an expired 2025 dlc.dat.
+          # Refresh only v2ray-geodata; keep old Xray and Geoview for Go 1.23.
+          git -C feeds/passwall_packages fetch --depth 1 origin "${GEODATA_COMMIT}"
+          git -C feeds/passwall_packages checkout "${GEODATA_COMMIT}" -- v2ray-geodata
+
+          XRAY_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall_packages/xray-core/Makefile)"
+          PASSWALL2_VERSION="$(sed -n 's/^PKG_VERSION:=//p' feeds/passwall2/luci-app-passwall2/Makefile)"
+          GEOIP_VERSION="$(sed -n 's/^GEOIP_VER:=//p' feeds/passwall_packages/v2ray-geodata/Makefile)"
+          GEOSITE_VERSION="$(sed -n 's/^GEOSITE_VER:=//p' feeds/passwall_packages/v2ray-geodata/Makefile)"
+          echo "Pinned Xray version: ${XRAY_VERSION}"
+          echo "Pinned PassWall 2 version: ${PASSWALL2_VERSION}"
+          echo "Pinned GeoIP version: ${GEOIP_VERSION}"
+          echo "Pinned Geosite version: ${GEOSITE_VERSION}"
+          test "${XRAY_VERSION}" = "25.2.21"
+          test "${PASSWALL2_VERSION}" = "26.8.10"
+          test "${GEOIP_VERSION}" = "202608060031"
+          test "${GEOSITE_VERSION}" = "202608082221"
+
+          ./scripts/feeds install -a
+
+      - name: Configure Newifi D2 and PassWall 2
+        working-directory: immortalwrt
+        run: |
+          cat > .config <<'EOF'
+          CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt7621=y
+          CONFIG_TARGET_ramips_mt7621_DEVICE_d-team_newifi-d2=y
+
+          CONFIG_PACKAGE_luci=y
+          CONFIG_LUCI_LANG_zh_Hans=y
+          CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+
+          CONFIG_PACKAGE_luci-app-passwall2=y
+          CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+
+          CONFIG_PACKAGE_luci-app-passwall2_Basic_Core_Xray=y
+          # CONFIG_PACKAGE_luci-app-passwall2_Basic_Core_SingBox is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_Basic_Core_All is not set
+
+          CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y
+          # CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy is not set
+
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set
+          # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set
+
+          # CONFIG_PACKAGE_luci-app-passwall is not set
+          # CONFIG_PACKAGE_luci-i18n-passwall-zh-cn is not set
+
+          CONFIG_CCACHE=y
+          EOF
+
+          make defconfig
+
+          echo "Selected configuration:"
+          grep -E 'newifi-d2|luci-app-passwall2|xray-core|Nftables' .config || true
+
+          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y$' .config
+          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
+          if grep -q '^CONFIG_PACKAGE_luci-app-passwall=y$' .config; then
+            echo "PassWall 1 was selected unexpectedly."
+            exit 1
+          fi
+
+      - name: Download source packages
+        working-directory: immortalwrt
+        run: |
+          make download -j8 V=s || true
+
+          echo "Checking incomplete downloads:"
+          find dl -type f -size -1024c -print
+          find dl -type f -size -1024c -delete
+
+          # A final single-thread pass must succeed so a parallel download
+          # failure cannot be hidden among unrelated output.
+          make download -j1 V=s
+
+      - name: Build firmware
+        working-directory: immortalwrt
+        run: |
+          make -j2 V=s || make -j1 V=s
+
+      - name: Verify firmware image
+        working-directory: immortalwrt
+        shell: bash
+        run: |
+          TARGET_DIR="bin/targets/ramips/mt7621"
+          SYSUPGRADE="$(find "${TARGET_DIR}" -maxdepth 1 -type f -name '*newifi-d2*squashfs-sysupgrade.bin' -print -quit)"
+          MAX_BYTES=$((32448 * 1024))
+
+          if [ -z "${SYSUPGRADE}" ]; then
+            echo "Newifi D2 sysupgrade image was not generated."
+            exit 1
+          fi
+
+          ACTUAL_BYTES="$(stat -c '%s' "${SYSUPGRADE}")"
+          echo "Firmware: ${SYSUPGRADE}"
+          echo "Actual size: ${ACTUAL_BYTES} bytes"
+          echo "Newifi D2 limit: ${MAX_BYTES} bytes"
+
+          if [ "${ACTUAL_BYTES}" -gt "${MAX_BYTES}" ]; then
+            echo "Firmware exceeds the standard Newifi D2 image limit."
+            exit 1
+          fi
+
+          ls -lh "${TARGET_DIR}"/*newifi-d2*.bin
+          (
+            cd "${TARGET_DIR}"
+            sha256sum *newifi-d2*.bin > SHA256SUMS-newifi-d2
+            cat SHA256SUMS-newifi-d2
+          )
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: Newifi-D2-ImmortalWrt-PassWall2
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            immortalwrt/bin/targets/ramips/mt7621/*newifi-d2*squashfs-sysupgrade.bin
+            immortalwrt/bin/targets/ramips/mt7621/SHA256SUMS-newifi-d2
+            immortalwrt/.config
