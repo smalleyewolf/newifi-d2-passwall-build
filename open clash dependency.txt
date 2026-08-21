@@ -27,4 +27,110 @@ D:\R4S-OpenClash-Offline
 - 如果下载中断，重新执行同一条命令即可；已校验成功的文件会被复用。
 
 
-
+下载完成后，按“刷固件 → 复制离线文件 → 安装缺少依赖 → 安装 OpenClash → 放置 Mihomo 内核”的顺序操作。
+1. 把固件写入 TF 卡
+先备份 TF 卡中的重要数据，写入过程会清空整张卡。
+在这个目录找到固件：
+D:\R4S-OpenClash-Offline\Firmware\
+文件名：
+istoreos-24.10.5-2025123110-r4s-squashfs.img.gz
+使用 balenaEtcher 等支持 .img.gz 的写盘工具：
+1. 选择该 .img.gz 文件，无需手动解压。
+2. 选择 R4S 使用的 TF 卡。
+3. 再次确认没有误选电脑硬盘或移动硬盘。
+4. 开始写入并等待校验完成。
+5. 安全弹出 TF 卡，插入 R4S。
+6. 网线连接电脑和 R4S 的 LAN 口，然后通电。
+2. 首次登录 iStoreOS
+等待约两三分钟，在浏览器访问：
+http://192.168.100.1
+默认密码：
+password
+这是 iStoreOS 官方公布的默认地址和密码。iStoreOS Wiki
+登录后建议先修改管理密码。
+如果网页打不开：
+- 暂时关闭电脑 Wi-Fi，只保留有线连接。
+- 检查电脑是否自动获得 192.168.100.x 地址。
+- 尝试交换 R4S 的两个网口。
+3. 确认固件版本
+进入“系统 → 系统信息”，确认版本是：
+iStoreOS 24.10.5
+2025123110
+rockchip/armv8
+也可以在 SSH 中执行：
+cat /etc/openwrt_release
+必须看到：
+DISTRIB_REVISION='2025123110'
+如果不是这个版本，不要使用下载目录中的 Kmods。
+4. 把离线文件复制到 R4S
+推荐在 Windows 安装并打开 WinSCP，填写：
+文件协议：SCP
+主机：192.168.100.1
+用户名：root
+密码：你刚设置的密码；未修改则是 password
+在 R4S 上建立：
+/tmp/r4s-offline
+然后把以下三个文件夹复制进去：
+D:\R4S-OpenClash-Offline\OpenClash
+D:\R4S-OpenClash-Offline\Mihomo
+D:\R4S-OpenClash-Offline\Dependencies
+暂时不要复制或安装 Kmods。目标固件已经内置：
+kmod-tun
+kmod-inet-diag
+kmod-nft-tproxy
+5. 通过 SSH 安装缺少的 Ruby 依赖
+打开 Windows PowerShell，连接 R4S：
+ssh root@192.168.100.1
+首次连接输入：
+yes
+然后输入路由器密码。
+目标固件已经内置了 OpenClash 所需的大部分依赖。根据对固件镜像的实际检查，只缺少 Ruby 相关的 11 个包。
+执行：
+cd /tmp/r4s-offline/Dependencies
+然后安装：
+opkg install \
+  ./libyaml_*.ipk \
+  ./libruby3.3_*.ipk \
+  ./ruby_*.ipk \
+  ./ruby-*.ipk
+确认没有出现：
+Cannot satisfy dependencies
+如果看到某些包已经安装或配置完成，属于正常现象。
+6. 安装 OpenClash
+执行：
+opkg install /tmp/r4s-offline/OpenClash/luci-app-openclash_*_all.ipk
+安装完成后重启网页服务：
+/etc/init.d/uhttpd restart
+刷新 iStoreOS 页面，在“服务”菜单中应该可以看到 OpenClash。
+7. 安装 Mihomo/Meta 内核
+执行：
+mkdir -p /etc/openclash/core
+gzip -dc /tmp/r4s-offline/Mihomo/mihomo-linux-arm64-*.gz > /etc/openclash/core/clash_meta
+chmod 0755 /etc/openclash/core/clash_meta
+验证内核：
+/etc/openclash/core/clash_meta -v
+如果显示 Mihomo 版本号，说明内核正确。OpenClash 当前使用的 Meta 内核位置就是 /etc/openclash/core/clash_meta。OpenClash 源码
+8. 检查三个内核模块
+执行：
+opkg status kmod-tun
+opkg status kmod-inet-diag
+opkg status kmod-nft-tproxy
+三个命令都应该出现：
+Status: install hold installed
+因此不要再批量执行：
+opkg install /tmp/r4s-offline/Kmods/*.ipk
+Kmods 只是与这版固件 ABI 完全一致的应急备份。
+9. 配置并启动 OpenClash
+回到浏览器：
+服务 → OpenClash
+建议依次操作：
+1. 在版本/内核页面确认选择 Meta 内核。
+2. 在配置文件管理中上传你的 .yaml 或 .yml 配置。
+3. 设为当前配置文件。
+4. 初次使用先保留默认运行模式。
+5. 点击“启动 OpenClash”。
+6. 查看运行日志，确认没有内核、配置文件或防火墙错误。
+OpenClash 官方支持上传 YAML 配置，通常命名为 config.yaml 或 config.yml。配置文件说明
+完成后可以重启一次 R4S：
+reboot
+重启后重新访问 http://192.168.100.1，确认 OpenClash能够自动运行。
