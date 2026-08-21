@@ -1,0 +1,30 @@
+1. 先下载脚本：[Download-R4S-OpenClash-Offline.ps1](C:/Users/YongGao/Documents/Codex/2026-08-21/referenced-chatgpt-conversation-this-is-an/outputs/Download-R4S-OpenClash-Offline.ps1)
+2. 将脚本保存到“下载”文件夹。
+3. 打开 Windows 开始菜单，搜索并打开“PowerShell”。
+4. 复制下面这一整行到 PowerShell，然后按回车：
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\Download-R4S-OpenClash-Offline.ps1" -Destination "D:\R4S-OpenClash-Offline"
+如果你的“下载”文件夹中文名是“下载”，并且上面的命令提示找不到脚本，可改用：
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\下载\Download-R4S-OpenClash-Offline.ps1" -Destination "D:\R4S-OpenClash-Offline"
+运行后会发生什么：
+- 自动在 D 盘创建 D:\R4S-OpenClash-Offline
+- 下载约 163 MB 的 iStoreOS 固件
+- 下载 OpenClash、Mihomo 和全部递归依赖
+- 校验依赖包大小和 SHA256
+- 最后显示绿色的 Offline bundle completed successfully.
+完成后的目录大致如下：
+D:\R4S-OpenClash-Offline
+├── Firmware
+├── OpenClash
+├── Mihomo
+├── Dependencies
+├── Kmods
+└── Manifests
+注意：
+- 下载期间不要关闭 PowerShell 窗口。
+- 如果电脑没有 D 盘，把目标改成：
+-Destination "C:\R4S-OpenClash-Offline"
+- 之前命令里的反引号 ` 只是换行符。使用上面的一行命令最省事。
+- 如果下载中断，重新执行同一条命令即可；已校验成功的文件会被复用。
+
+
+
